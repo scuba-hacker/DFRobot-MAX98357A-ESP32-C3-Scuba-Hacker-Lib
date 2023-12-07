@@ -1,7 +1,7 @@
 /*!
  * @file  DFRobot_MAX98357A.cpp
  * @brief  Define the infrastructure DFRobot_MAX98357A class
- * @details  Configure a classic Bluetooth, pair with Bluetooth devices, receive Bluetooth audio, 
+ * @details  Configure a classic Bluetooth, pair with Bluetooth devices, receive Bluetooth audio,
  * @n        Process simple audio signal, and pass it into the amplifier using I2S communication
  * @copyright  Copyright (c) 2010 DFRobot Co.Ltd (http://www.dfrobot.com)
  * @license  The MIT License (MIT)
@@ -68,6 +68,25 @@ DFRobot_MAX98357A::DFRobot_MAX98357A()
 {
 }
 
+uint8_t DFRobot_MAX98357A::getAmplifierState() const
+{
+	return SDAmplifierMark;
+}
+
+uint8_t DFRobot_MAX98357A::getTrackCount() const
+{
+	return musicCount;
+}
+
+const char* DFRobot_MAX98357A::getTrackFilename(const uint8_t trackIndex)
+{
+	if (trackIndex < musicCount)
+		return _musicList[trackIndex].c_str();
+	else
+		return NULL;
+}
+
+
 bool DFRobot_MAX98357A::begin(int bclk, int lrclk, int din)
 {
   // Initialize I2S
@@ -94,7 +113,7 @@ bool DFRobot_MAX98357A::initI2S(int _bclk, int _lrclk, int _din)
 {
   static const i2s_config_t i2s_config = {
     .mode = static_cast<i2s_mode_t>(I2S_MODE_MASTER | I2S_MODE_TX),   // The main controller can transmit data but not receive.
-    .sample_rate = _sampleRate,
+    .sample_rate = (uint32_t)_sampleRate,
     .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,   // 16 bits per sample
     .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,   // 2-channels
     .communication_format = I2S_COMM_FORMAT_STAND_I2S,   // I2S communication I2S Philips standard, data launch at second BCK
@@ -167,7 +186,7 @@ bool DFRobot_MAX98357A::initSDCard(uint8_t csPin)
   {
 	DBG("xTaskCreate xPlayWAV Succeeded");
   }
-	  
+
   return true;
 }
 
@@ -328,10 +347,10 @@ _filterFlag = false; // MBJ MBJ
   {   // Filtering with a simple digital filter
     for(int i=0; i<count; i++)
 	{
-      processedData[0+_voiceSource] = filterToWork(_filterLHP, _filterLLP, ((*data16) * _volume));   // Change audio data volume of left channel, and perform filtering operation
+//      processedData[0+_voiceSource] = filterToWork(_filterLHP, _filterLLP, ((*data16) * _volume));   // Change audio data volume of left channel, and perform filtering operation
       data16++;
 
-      processedData[1-_voiceSource] = filterToWork(_filterRHP, _filterRLP, ((*data16) * _volume));   // Change audio data volume of right channel, and perform filtering operation
+  //    processedData[1-_voiceSource] = filterToWork(_filterRHP, _filterRLP, ((*data16) * _volume));   // Change audio data volume of right channel, and perform filtering operation
       data16++;
 
       i2s_write(I2S_NUM_0, processedData, 4, &i2s_bytes_write, 100);   // Transfer audio data to the amplifier via I2S
@@ -343,15 +362,15 @@ _filterFlag = false; // MBJ MBJ
 void DFRobot_MAX98357A::playWAV(void *arg)
 {
   DBG("playWAV: task and method started");
-  
+
   while(1){
     while(SD_AMPLIFIER_STOP == SDAmplifierMark)
 	{
       vTaskDelay(100);
     }
-	
+
 	DBG("playWAV: SD_AMPLIFIER_STOP not true, PLAY started");
- 
+
 
     sWavInfo_t * wav = (sWavInfo_t *)calloc(1, sizeof(sWavInfo_t));
 
@@ -369,7 +388,7 @@ void DFRobot_MAX98357A::playWAV(void *arg)
 	}
 
     wav->fp = fopen(fileName, "rb");
-    
+
 	if(wav->fp == NULL)
 	{
       DBG("playWAV: Unable to open wav file.");
@@ -419,7 +438,7 @@ void DFRobot_MAX98357A::playWAV(void *arg)
 	{
 		DBG("playWAV: read format ok");
 	}
-	
+
     if(strncmp("WAVE", wav->header.waveType, 4)){
       DBG("playWAV: WAVE chunk ID not found.") ;
       SDAmplifierMark = SD_AMPLIFIER_STOP;
@@ -429,8 +448,8 @@ void DFRobot_MAX98357A::playWAV(void *arg)
 	{
 		DBG("playWAV: WAVE chunk ID found ok");
 	}
-	
-	
+
+
 	    char                  riffType[4];
     unsigned int          riffSize;
     char                  waveType[4];
@@ -447,7 +466,7 @@ void DFRobot_MAX98357A::playWAV(void *arg)
     unsigned int          dataSize;
     char                  data[800];
 
-	
+
     if(fread(&(wav->header.formatType), 1, 4, wav->fp) != 4)
 	{
       DBG("playWAV: couldn't read format_ID");
@@ -458,7 +477,7 @@ void DFRobot_MAX98357A::playWAV(void *arg)
 	{
 		DBGF("playWAV: successful read format_ID %c%c%c%c%c",formatType[0],formatType[1],formatType[2],formatType[3]);
 	}
-	
+
     if(strncmp("fmt", wav->header.formatType, 3))
 	{
       DBG("playWAV: fmt chunk format not found.");
@@ -469,7 +488,7 @@ void DFRobot_MAX98357A::playWAV(void *arg)
 	{
 		DBG("playWAV: successful fmt chunk format found:");
 	}
-	
+
     fread(&(wav->header.formatSize), 4, 1, wav->fp);
 	DBGF("playWAV: read wav->header.formatSize ok %ld",wav->header.formatSize);
     fread(&(wav->header.compressionCode), 2, 1, wav->fp);
@@ -489,33 +508,33 @@ void DFRobot_MAX98357A::playWAV(void *arg)
 	{
       if(fread(&wav->header.dataType1, 1, 1, wav->fp) != 1)
 	  {
-        DBG("playWAV: Unable to read data chunk ID.");
+  //      DBG("playWAV: Unable to read data chunk ID.");
         free(wav);
         break;
       }
 	  else
 	  {
-	  	DBG("playWAV: Read data chunk ID ok");
+//	  	DBG("playWAV: Read data chunk ID ok");
 	  }
-	  
+
       if(strncmp("d", wav->header.dataType1, 1) == 0)
 	  {
         fread(&wav->header.dataType2, 3, 1, wav->fp);
-      	DBG("playWAV: Read data chunk ok");
+//      	DBG("playWAV: Read data chunk ok");
 	    if(strncmp("ata", wav->header.dataType2, 3) == 0)
 		{
           fread(&(wav->header.dataSize),4,1,wav->fp);
           break;
         }
       }
-	  
+
     }
 
     i2s_set_sample_rates(I2S_NUM_0, wav->header.sampleRate);   // Set I2S sampling rate based on the parsed audio sampling frequency
 	DBG("playWAV: i2s_set_sample_rates ok");
-/*
+
 	DBG("playWAV: attempt single fread of 800 bytes");
-	
+
 	if (wav == NULL)
 	{
 		DBG("playWAV: wav pointer is NULL");
@@ -524,9 +543,9 @@ void DFRobot_MAX98357A::playWAV(void *arg)
 	{
 		DBG("playWAV: wav pointer is Good not-null");
 	}
-	
+
 	void* header_data_p = &wav->header.data;
-	
+
 	if (header_data_p == NULL)
 	{
 		DBG("playWAV: wav->header.data pointer is NULL");
@@ -535,7 +554,7 @@ void DFRobot_MAX98357A::playWAV(void *arg)
 	{
 		DBG("playWAV: wav->header.data pointer=is Good not-null");
 	}
-	
+
 	FILE* stream = wav->fp;
 
 	if (stream == NULL)
@@ -546,26 +565,13 @@ void DFRobot_MAX98357A::playWAV(void *arg)
 	{
 		DBG("playWAV: file stream pointer is Good not-null");
 	}
-	
-	fread(&wav->header.data, 1 , 800 , wav->fp);
-	DBG("playWAV: single fread done.");
-
-	fread(&wav->header.data, 1 , 800 , wav->fp);
-	DBG("playWAV: second  fread done.");
-	delay(2000);
-	DBG("playWAV: delay(2000) done");
-	vTaskDelay(2000);
-	DBG("playWAV: vTaskDelay(2000) done");
-*/
 
     while(fread(&wav->header.data, 1 , 800 , wav->fp))
 	{
- //	 DBG("playWAV: fread while loop: read data chunk from wav file ok");
- 	// DBG("playWAV: \n\n\n");
-	 
+//	DBG("playWAV: fread while loop: read data chunk from wav file ok\n");
      audioDataProcessCallback((uint8_t *)&wav->header.data, 800);   // Send the parsed audio data to the amplifier broadcast function
 // 	 DBG("playWAV: audioDataProcessCallback call ok");
-  
+
 	  if(SD_AMPLIFIER_STOP == SDAmplifierMark)
 	  {
         break;
@@ -585,6 +591,6 @@ void DFRobot_MAX98357A::playWAV(void *arg)
     SDAmplifierMark = SD_AMPLIFIER_STOP;
     vTaskDelay(100);
   }
-  
+
   vTaskDelete(xPlayWAV);
 }

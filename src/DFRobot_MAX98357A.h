@@ -1,7 +1,7 @@
 /*!
  * @file  DFRobot_MAX98357A.h
  * @brief  Define infrastructure of DFRobot_MAX98357A class
- * @details  Configure a classic Bluetooth, pair with Bluetooth devices, receive Bluetooth audio, 
+ * @details  Configure a classic Bluetooth, pair with Bluetooth devices, receive Bluetooth audio,
  * @n        Process simple audio signal, and pass it into the amplifier using I2S communication
  * @copyright  Copyright (c) 2010 DFRobot Co.Ltd (http://www.dfrobot.com)
  * @license  The MIT License (MIT)
@@ -28,7 +28,7 @@
   #define DBG(...)
 #endif
 
-#define ENABLE_DBGF   //!< Open this macro and you can see the details of the program
+//#define ENABLE_DBGF   //!< Open this macro and you can see the details of the program
 #ifdef ENABLE_DBGF
   #define DBGF(...) {Serial.print("[");Serial.print(__FUNCTION__); Serial.print("(): "); Serial.print(__LINE__); Serial.print(" ] "); Serial.printf(__VA_ARGS__);Serial.println("");}
 #else
@@ -66,8 +66,8 @@ public:
    * @param din - I2S communication pin number, serial data signal (SD), used to transmit audio data in two's complement format
    * @return true on success, false on error
    */
-  bool begin(int bclk=GPIO_NUM_0, 
-             int lrclk=GPIO_NUM_1, 
+  bool begin(int bclk=GPIO_NUM_0,
+             int lrclk=GPIO_NUM_1,
              int din=GPIO_NUM_7);
 
   /**
@@ -113,7 +113,7 @@ public:
   /**
    * @fn SDPlayerControl
    * @brief SD card music playback control interface
-   * @param CMD - Playback control command: 
+   * @param CMD - Playback control command:
    * @n SD_AMPLIFIER_PLAY: Start to play music, which can be played from the position where you paused before
    * @n   If no music file is selected through playSDMusic(), the first one in the list will be played by default.
    * @n   Playback error may occur if music files are not scanned from SD card in the correct format (only support English for path name of music files and WAV for their format currently)
@@ -157,6 +157,10 @@ public:
    */
   void reverseLeftRightChannels(void);
 
+  uint8_t getAmplifierState() const;
+  uint8_t getTrackCount() const;
+  const char* getTrackFilename(const uint8_t trackIndex);
+
 protected:
 
   /**
@@ -199,7 +203,7 @@ protected:
 
   /**
    * @fn audioDataProcessCallback
-   * @brief esp_a2d_sink_register_data_callback() function, 
+   * @brief esp_a2d_sink_register_data_callback() function,
    * @n     Process the audio stream data of Bluetooth A2DP protocol communication
    * @param data - The audio data from the remote Bluetooth device
    * @param len - Byte length of audio data
@@ -216,6 +220,7 @@ protected:
    * @note Because of some factors like action scope, the function should be static. Therefore it is shared by multiple objects of the class.
    */
   static void playWAV(void *arg);
+
 
 private:
 
